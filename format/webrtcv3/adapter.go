@@ -208,7 +208,7 @@ func (element *Muxer) UpdateStreams(streams []av.CodecData) error {
 		var track *webrtc.TrackLocalStaticSample
 		if i2.Type().IsVideo() {
 			if i2.Type() == av.H264 {
-				track, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{
+				track, err = webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{
 					MimeType: "video/h264",
 				}, "pion-rtsp-video", "pion-rtsp-video")
 				if err != nil {
@@ -231,7 +231,7 @@ func (element *Muxer) UpdateStreams(streams []av.CodecData) error {
 				log.Println(ErrorIgnoreAudioTrack)
 				continue
 			}
-			track, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{
+			track, err = webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{
 				MimeType:  AudioCodecString,
 				Channels:  uint16(i2.(av.AudioCodecData).ChannelLayout().Count()),
 				ClockRate: uint32(i2.(av.AudioCodecData).SampleRate()),
