@@ -19,12 +19,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/deepch/vdk/av"
-	"github.com/deepch/vdk/codec"
-	"github.com/deepch/vdk/codec/aacparser"
-	"github.com/deepch/vdk/codec/h264parser"
-	"github.com/deepch/vdk/codec/h265parser"
-	"github.com/deepch/vdk/format/rtsp/sdp"
+	"github.com/zebemce/vdk/av"
+	"github.com/zebemce/vdk/codec"
+	"github.com/zebemce/vdk/codec/aacparser"
+	"github.com/zebemce/vdk/codec/h264parser"
+	"github.com/zebemce/vdk/codec/h265parser"
+	"github.com/zebemce/vdk/format/rtsp/sdp"
 )
 
 const (

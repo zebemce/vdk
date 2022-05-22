@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/deepch/vdk/av"
-	"github.com/deepch/vdk/utils/bits"
-	"github.com/deepch/vdk/utils/bits/pio"
 	"time"
+
+	"github.com/zebemce/vdk/av"
+	"github.com/zebemce/vdk/utils/bits"
+	"github.com/zebemce/vdk/utils/bits/pio"
 )
 
 type SPSInfo struct {
