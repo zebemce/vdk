@@ -11,8 +11,8 @@ import (
 
 	"github.com/deepch/vdk/av"
 	"github.com/pion/interceptor"
-	"github.com/pion/webrtc/v3"
-	"github.com/pion/webrtc/v3/pkg/media"
+	"github.com/zebemce/webrtc/v3"
+	"github.com/zebemce/webrtc/v3/pkg/media"
 )
 
 var (
@@ -192,6 +192,61 @@ func (element *Muxer) WriteHeader(streams []av.CodecData, sdp64 string) (string,
 	WriteHeaderSuccess = true
 	return base64.StdEncoding.EncodeToString([]byte(resp.SDP)), nil
 
+}
+
+func (element *Muxer) UpdateStreams(streams []av.CodecData) error {
+	if len(streams) == 0 {
+		return ErrorNotFound
+	}
+
+	err := element.pc.RemoveAllTracks()
+	if err != nil {
+		return err
+	}
+
+	for i, i2 := range streams {
+		var track *webrtc.TrackLocalStaticSample
+		if i2.Type().IsVideo() {
+			if i2.Type() == av.H264 {
+				track, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{
+					MimeType: "video/h264",
+				}, "pion-rtsp-video", "pion-rtsp-video")
+				if err != nil {
+					return err
+				}
+				if _, err = element.pc.AddTrack(track); err != nil {
+					return err
+				}
+			}
+		} else if i2.Type().IsAudio() {
+			AudioCodecString := webrtc.MimeTypePCMA
+			switch i2.Type() {
+			case av.PCM_ALAW:
+				AudioCodecString = webrtc.MimeTypePCMA
+			case av.PCM_MULAW:
+				AudioCodecString = webrtc.MimeTypePCMU
+			case av.OPUS:
+				AudioCodecString = webrtc.MimeTypeOpus
+			default:
+				log.Println(ErrorIgnoreAudioTrack)
+				continue
+			}
+			track, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{
+				MimeType:  AudioCodecString,
+				Channels:  uint16(i2.(av.AudioCodecData).ChannelLayout().Count()),
+				ClockRate: uint32(i2.(av.AudioCodecData).SampleRate()),
+			}, "pion-rtsp-audio", "pion-rtsp-audio")
+			if err != nil {
+				return err
+			}
+			if _, err := element.pc.AddTrack(track); err != nil {
+				return err
+			}
+		}
+		element.streams[int8(i)] = &Stream{track: track, codec: i2}
+	}
+
+	return nil
 }
 
 func (element *Muxer) WritePacket(pkt av.Packet) (err error) {
