@@ -194,14 +194,23 @@ func (element *Muxer) WriteHeader(streams []av.CodecData, sdp64 string) (string,
 
 }
 
-func (element *Muxer) UpdateStreams(streams []av.CodecData) error {
+func (element *Muxer) UpdateStreams(streams []av.CodecData, sdp64 string) (string, error) {
 	if len(streams) == 0 {
-		return ErrorNotFound
+		return "", ErrorNotFound
 	}
 
-	err := element.pc.RemoveAllTracks()
+	sdpB, err := base64.StdEncoding.DecodeString(sdp64)
 	if err != nil {
-		return err
+		return "", err
+	}
+	offer := webrtc.SessionDescription{
+		Type: webrtc.SDPTypeOffer,
+		SDP:  string(sdpB),
+	}
+
+	err = element.pc.RemoveAllTracks()
+	if err != nil {
+		return "", err
 	}
 
 	for i, i2 := range streams {
@@ -212,10 +221,10 @@ func (element *Muxer) UpdateStreams(streams []av.CodecData) error {
 					MimeType: "video/h264",
 				}, "pion-rtsp-video", "pion-rtsp-video")
 				if err != nil {
-					return err
+					return "", err
 				}
 				if _, err = element.pc.AddTrack(track); err != nil {
-					return err
+					return "", err
 				}
 			}
 		} else if i2.Type().IsAudio() {
@@ -237,16 +246,41 @@ func (element *Muxer) UpdateStreams(streams []av.CodecData) error {
 				ClockRate: uint32(i2.(av.AudioCodecData).SampleRate()),
 			}, "pion-rtsp-audio", "pion-rtsp-audio")
 			if err != nil {
-				return err
+				return "", err
 			}
 			if _, err := element.pc.AddTrack(track); err != nil {
-				return err
+				return "", err
 			}
 		}
 		element.streams[int8(i)] = &Stream{track: track, codec: i2}
 	}
 
-	return nil
+	if len(element.streams) == 0 {
+		return "", ErrorNotTrackAvailable
+	}
+
+	if err = element.pc.SetRemoteDescription(offer); err != nil {
+		return "", err
+	}
+	gatherCompletePromise := webrtc.GatheringCompletePromise(element.pc)
+	answer, err := element.pc.CreateAnswer(nil)
+	if err != nil {
+		return "", err
+	}
+	if err = element.pc.SetLocalDescription(answer); err != nil {
+		return "", err
+	}
+
+	waitT := time.NewTimer(time.Second * 10)
+	select {
+	case <-waitT.C:
+		return "", errors.New("gatherCompletePromise wait")
+	case <-gatherCompletePromise:
+		//Connected
+	}
+	resp := element.pc.LocalDescription()
+
+	return base64.StdEncoding.EncodeToString([]byte(resp.SDP)), nil
 }
 
 func (element *Muxer) WritePacket(pkt av.Packet) (err error) {
